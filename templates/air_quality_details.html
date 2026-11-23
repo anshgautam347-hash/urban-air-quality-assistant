@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-dark">Air Quality Details & Scale Breakdown</h1>
+            <p class="text-muted small mb-0">
+                Understanding pollutant metrics, mathematical AQI conversions, WHO guidelines, and health consequences.
+            </p>
+        </div>
+        <div>
+            <span class="badge bg-light text-dark border p-2">
+                <i class="bi bi-geo-alt text-danger me-1"></i>{{ aqi_data.city_name }} &bull; Measured AQI: <strong>{{ aqi_data.us_aqi }}</strong>
+            </span>
+        </div>
+    </div>
+
+    <!-- Educational Banner: Concentration vs AQI -->
+    <div class="card-custom p-4 mb-4 bg-light border-primary-subtle">
+        <div class="d-flex align-items-start gap-3">
+            <i class="bi bi-mortarboard-fill fs-3 text-primary mt-1"></i>
+            <div>
+                <h5 class="fw-bold text-dark mb-1">Critical Scientific Distinction: Concentration vs. AQI</h5>
+                <p class="text-secondary small mb-2">
+                    A frequent misunderstanding is treating raw pollutant concentration (µg/m³) as an AQI value. They are fundamentally different:
+                </p>
+                <div class="row g-3 mt-1">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-white rounded border">
+                            <h6 class="fw-bold text-primary mb-1"><i class="bi bi-thermometer-half me-1"></i>Pollutant Concentration (µg/m³)</h6>
+                            <p class="small text-muted mb-0">
+                                The physical mass of a chemical contaminant contained within one cubic meter of ambient air. Measured directly by optical particle counters and gas spectrometers.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 bg-white rounded border">
+                            <h6 class="fw-bold text-success mb-1"><i class="bi bi-speedometer2 me-1"></i>Air Quality Index (AQI)</h6>
+                            <p class="small text-muted mb-0">
+                                A unitless standardized scale (0–500 in the US EPA system) calculated through piecewise linear interpolation to translate disparate chemical masses into an intuitive public health risk indicator.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart: Measured Concentrations vs WHO 24h Limits -->
+    <div class="card-custom p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="card-title-custom">
+                <i class="bi bi-bar-chart-line text-primary"></i>Pollutant Concentration vs. WHO Guideline Ratio
+            </h2>
+            <span class="small text-muted">Values &gt; 1.0x exceed the WHO 24h health protection limit</span>
+        </div>
+        <div style="height: 280px;">
+            <canvas id="pollutantRatioChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Detailed Pollutants Grid -->
+    <div class="row g-3 mb-4">
+        {% for p in aqi_data.pollutants %}
+            <div class="col-lg-4 col-md-6">
+                <div class="card-custom p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h5 class="fw-bold text-dark mb-0">{{ p.name }}</h5>
+                            <small class="text-muted">{{ p.full_name }}</small>
+                        </div>
+                        <span class="badge {{ p.status_class }} bg-light border">{{ p.status }}</span>
+                    </div>
+
+                    <div class="d-flex align-items-baseline gap-2 my-2">
+                        <span class="fs-3 fw-bold text-dark">{{ p.value }}</span>
+                        <span class="text-muted small">{{ p.unit }}</span>
+                        {% if p.who_limit %}
+                            <span class="badge bg-secondary-subtle text-secondary ms-auto small">WHO Limit: {{ p.who_limit }}</span>
+                        {% endif %}
+                    </div>
+
+                    {% if p.ratio_to_who > 0 %}
+                        <div class="progress mb-3" style="height: 6px;">
+                            <div class="progress-bar {% if p.ratio_to_who > 2 %}bg-danger{% elif p.ratio_to_who > 1 %}bg-warning{% else %}bg-success{% endif %}" 
+                                 role="progressbar" style="width: {% if p.ratio_to_who > 5 %}100{% else %}{{ p.ratio_to_who|floatformat:0 }}0{% endif %}%;">
+                            </div>
+                        </div>
+                        <small class="d-block mb-2 text-muted">
+                            Exposure: <strong class="text-dark">{{ p.ratio_to_who }}x</strong> the WHO Guideline
+                        </small>
+                    {% endif %}
+
+                    <div class="small mb-2">
+                        <strong class="text-secondary d-block"><i class="bi bi-building me-1"></i>Primary Sources:</strong>
+                        <span class="text-muted">{{ p.source }}</span>
+                    </div>
+
+                    <div class="small mt-auto pt-2 border-top">
+                        <strong class="text-secondary d-block"><i class="bi bi-lungs me-1"></i>Health Effects:</strong>
+                        <span class="text-muted">{{ p.health_effect }}</span>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Mathematical Formula & Breakpoints Reference -->
+    <div class="card-custom p-4 mb-4">
+        <h2 class="card-title-custom mb-3">
+            <i class="bi bi-calculator text-primary"></i>Mathematical EPA AQI Conversion Formula
+        </h2>
+        <p class="small text-secondary mb-3">
+            The US EPA calculates AQI for any pollutant concentration using piecewise linear interpolation between predefined toxicological breakpoints:
+        </p>
+
+        <div class="p-3 bg-light rounded text-center my-3 font-monospace fw-bold fs-6 border">
+            I = [ (I_high - I_low) / (C_high - C_low) ] &times; (C - C_low) + I_low
+        </div>
+
+        <div class="table-responsive mt-3">
+            <table class="table table-bordered table-sm align-middle small">
+                <thead class="table-light">
+                    <tr>
+                        <th>AQI Range</th>
+                        <th>Category</th>
+                        <th>PM2.5 (µg/m³) Breakpoint</th>
+                        <th>PM10 (µg/m³) Breakpoint</th>
+                        <th>Recommended Winter Smog Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="table-success">
+                        <td class="fw-bold">0 – 50</td>
+                        <td>Good</td>
+                        <td>0.0 – 12.0</td>
+                        <td>0 – 54</td>
+                        <td>Freely open windows, outdoor workouts encouraged.</td>
+                    </tr>
+                    <tr class="table-warning">
+                        <td class="fw-bold">51 – 100</td>
+                        <td>Moderate</td>
+                        <td>12.1 – 35.4</td>
+                        <td>55 – 154</td>
+                        <td>Unusually sensitive persons should monitor respiratory symptoms.</td>
+                    </tr>
+                    <tr style="background-color: #ffedd5;">
+                        <td class="fw-bold text-orange">101 – 150</td>
+                        <td>Unhealthy for Sensitive Groups</td>
+                        <td>35.5 – 55.4</td>
+                        <td>155 – 254</td>
+                        <td>Children & elderly move workouts indoors; schedule outdoor errands for midday.</td>
+                    </tr>
+                    <tr class="table-danger">
+                        <td class="fw-bold">151 – 200</td>
+                        <td>Unhealthy</td>
+                        <td>55.5 – 150.4</td>
+                        <td>255 – 354</td>
+                        <td>Wear certified N95 respirators outdoors; run indoor HEPA filters.</td>
+                    </tr>
+                    <tr style="background-color: #ede9fe;">
+                        <td class="fw-bold text-purple">201 – 300</td>
+                        <td>Very Unhealthy</td>
+                        <td>150.5 – 250.4</td>
+                        <td>355 – 424</td>
+                        <td>Strict indoor stay for all; seal windows and conduct wet mopping.</td>
+                    </tr>
+                    <tr style="background-color: #fce7f3;">
+                        <td class="fw-bold text-danger">301 – 500</td>
+                        <td>Hazardous</td>
+                        <td>250.5 – 500.4</td>
+                        <td>425 – 604</td>
+                        <td>Emergency health warning: zero non-essential outdoor exposure.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const chartData = {{ pollutant_chart_json|safe }};
+    const ctx = document.getElementById('pollutantRatioChart');
+    if (ctx && chartData) {
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartData.labels,
+                datasets: [
+                    {
+                        label: 'Ratio to WHO Guideline (1.0 = Threshold)',
+                        data: chartData.ratios,
+                        backgroundColor: chartData.ratios.map(r => r > 2 ? '#ef4444' : (r > 1 ? '#f59e0b' : '#10b981')),
+                        borderRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return `Exposure: ${context.parsed.y}x WHO Guideline Limit`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f1f5f9' },
+                        title: { display: true, text: 'Multiple of WHO Guideline', font: { size: 11 } }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

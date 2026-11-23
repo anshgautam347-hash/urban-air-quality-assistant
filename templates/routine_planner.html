@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-dark">Smart Daily Routine Planner</h1>
+            <p class="text-muted small mb-0">
+                Data-driven daily schedule optimizing outdoor windows, low-emission commuting, and family protection against winter smog.
+            </p>
+        </div>
+        <div>
+            <span class="badge bg-light text-dark border p-2">
+                <i class="bi bi-geo-alt text-danger me-1"></i>{{ aqi_data.city_name }} &bull; Current AQI: <strong>{{ aqi_data.us_aqi }}</strong>
+            </span>
+        </div>
+    </div>
+
+    <!-- Mandatory Safety Clarification Alert -->
+    <div class="alert alert-warning border-start border-4 mb-4 shadow-sm" role="alert">
+        <div class="d-flex align-items-center gap-3">
+            <i class="bi bi-shield-exclamation fs-3 text-warning"></i>
+            <div>
+                <h6 class="alert-heading mb-1 fw-bold">Crucial Winter Smog Safety Notice</h6>
+                <p class="mb-0 small">{{ routine.disclaimer }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards: Best & Worst Activity Windows -->
+    <div class="row g-3 mb-4">
+        <!-- Best Outdoor Window -->
+        <div class="col-md-6">
+            <div class="card-custom p-4 border-success-subtle bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-success-subtle text-success text-uppercase fw-bold">
+                        <i class="bi bi-check-circle me-1"></i>Optimal Activity Window
+                    </span>
+                    <small class="text-muted">Diurnal Inversion Dip</small>
+                </div>
+                <div class="display-6 fw-bold text-success my-2">
+                    {{ routine.best_window.time }}
+                </div>
+                <div class="fw-semibold text-dark small mb-1">
+                    Projected Smog Level: ~{{ routine.min_aqi }} AQI
+                </div>
+                <p class="small text-muted mb-0">
+                    Solar radiation warms the ground layer, creating convection currents that disperse stagnant winter smog. Recommended period for necessary outdoor trips, quick grocery runs, or brief child playtime.
+                </p>
+            </div>
+        </div>
+
+        <!-- High-Risk Smog Window -->
+        <div class="col-md-6">
+            <div class="card-custom p-4 border-danger-subtle bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-danger-subtle text-danger text-uppercase fw-bold">
+                        <i class="bi bi-x-circle me-1"></i>Peak Smog Trap Window
+                    </span>
+                    <small class="text-muted">Ground Inversion Peak</small>
+                </div>
+                <div class="display-6 fw-bold text-danger my-2">
+                    {{ routine.worst_window.time }}
+                </div>
+                <div class="fw-semibold text-dark small mb-1">
+                    Projected Smog Peak: ~{{ routine.max_aqi }} AQI
+                </div>
+                <p class="small text-muted mb-0">
+                    Cold winter surface inversion traps vehicle exhaust, biomass smoke, and dust particles within tens of meters of the ground. Cancel all outdoor jogging, walks, and workouts.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hourly Forecast Trend Visualizer -->
+    <div class="card-custom p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="card-title-custom">
+                <i class="bi bi-graph-up text-primary"></i>24-Hour Diurnal Smog Inversion Profile
+            </h2>
+            <span class="small text-muted"><i class="bi bi-info-circle me-1"></i>Atmospheric Model Forecast</span>
+        </div>
+        <div style="height: 260px;">
+            <canvas id="routineHourlyChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Daily Time Slots & Action Schedule -->
+    <div class="card-custom p-4 mb-4">
+        <h2 class="card-title-custom mb-3">
+            <i class="bi bi-calendar2-week text-primary"></i>Hour-by-Hour Family Routine Schedule
+        </h2>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
+                    <tr>
+                        <th style="width: 18%;">Time Slot</th>
+                        <th style="width: 15%;">Period & Risk</th>
+                        <th style="width: 25%;">Household & Ventilation</th>
+                        <th style="width: 22%;">Children / Vulnerable Members</th>
+                        <th style="width: 20%;">Commuting Strategy</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    {% for slot in routine.routine_slots %}
+                        <tr>
+                            <td class="fw-bold text-dark">
+                                <i class="bi bi-clock me-1 text-primary"></i>{{ slot.time_range }}
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ slot.title }}</div>
+                                <span class="badge {{ slot.status_class }} mt-1">{{ slot.status }}</span>
+                            </td>
+                            <td class="text-secondary">
+                                {{ slot.general_action }}
+                            </td>
+                            <td class="text-secondary">
+                                <div class="mb-1"><strong class="text-dark">Kids:</strong> {{ slot.child_action }}</div>
+                                <div><strong class="text-dark">Seniors:</strong> {{ slot.elderly_action }}</div>
+                            </td>
+                            <td class="text-secondary">
+                                <i class="bi bi-compass me-1 text-muted"></i>{{ slot.commute_action }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Low-Emission Commuting Guidance Cards -->
+    <div class="card-custom p-4 mb-4">
+        <h2 class="card-title-custom mb-3">
+            <i class="bi bi-train-front text-primary"></i>Low-Emission & Low-Exposure Commute Analysis
+        </h2>
+        <p class="small text-muted mb-3">
+            Active transport (walking/cycling) reduces societal emissions, but heavy exertion during severe smog increases personal lung exposure by 300%. Balance emissions with airway protection:
+        </p>
+
+        <div class="row g-3">
+            {% for c in routine.commute_guidance %}
+                <div class="col-md-6 col-lg-3">
+                    <div class="p-3 bg-light rounded-3 border h-100 d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="fw-bold text-dark mb-0">{{ c.mode }}</h6>
+                            <span class="badge {{ c.badge }} small">{{ c.rating }}</span>
+                        </div>
+                        <div class="small mb-1">
+                            <strong class="text-secondary">Emissions:</strong> {{ c.emission_impact }}
+                        </div>
+                        <div class="small mb-2">
+                            <strong class="text-secondary">Exposure Risk:</strong> {{ c.exposure_risk }}
+                        </div>
+                        <p class="small text-muted mt-auto pt-2 border-top mb-0">
+                            {{ c.guidance }}
+                        </p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Family Personalization Callouts -->
+    {% if routine.personalized_notes %}
+        <div class="card-custom p-4">
+            <h2 class="card-title-custom mb-3">
+                <i class="bi bi-person-lines-fill text-primary"></i>Custom Advice for Registered Family Members
+            </h2>
+            <div class="row g-3">
+                {% for note in routine.personalized_notes %}
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded-3 bg-white">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold text-dark">{{ note.member_name }} ({{ note.age_group }})</span>
+                                <small class="text-muted">{{ note.vulnerability }}</small>
+                            </div>
+                            <p class="small text-secondary mb-0">
+                                {{ note.custom_guidance }}
+                            </p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const hourlyData = {{ hourly_chart_json|safe }};
+    const ctx = document.getElementById('routineHourlyChart');
+    if (ctx && hourlyData) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: hourlyData.labels,
+                datasets: [{
+                    label: 'Predicted AQI by Hour',
+                    data: hourlyData.aqi,
+                    borderColor: '#0ea5e9',
+                    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointBackgroundColor: '#0ea5e9'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f1f5f9' },
+                        title: { display: true, text: 'US AQI' }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

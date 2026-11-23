@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-dark">Smart Pollution Alerts & Severity Warnings</h1>
+            <p class="text-muted small mb-0">
+                Automated threshold monitoring and customized family protection directives for severe winter smog episodes.
+            </p>
+        </div>
+        <div>
+            <span class="badge bg-light text-dark border p-2">
+                <i class="bi bi-bell-fill text-warning me-1"></i>Alert Trigger Threshold: <strong>{{ threshold }} AQI</strong>
+            </span>
+        </div>
+    </div>
+
+    <!-- Active Warning Banners -->
+    {% if alert_info.alerts %}
+        <div class="mb-4">
+            {% for a in alert_info.alerts %}
+                <div class="card-custom p-4 mb-3 border-start border-4 {{ a.color_class }}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-exclamation-octagon-fill fs-4"></i>
+                            <h2 class="h5 fw-bold mb-0">{{ a.title }}</h2>
+                        </div>
+                        <span class="badge {{ a.badge_class }}">{{ a.badge }}</span>
+                    </div>
+
+                    <p class="mb-3 small">
+                        {{ a.message }}
+                    </p>
+
+                    <div class="p-3 bg-white rounded-3 border">
+                        <strong class="d-block mb-1 text-dark small">
+                            <i class="bi bi-shield-check text-success me-1"></i>Mandatory Health Action:
+                        </strong>
+                        <span class="text-secondary small">{{ a.primary_action }}</span>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card-custom p-4 text-center py-5 mb-4">
+            <i class="bi bi-check-circle display-4 text-success mb-3"></i>
+            <h2 class="h5 fw-bold text-dark">No Active Severe Smog Alerts</h2>
+            <p class="text-muted small mb-0">
+                Current air pollution in {{ aqi_data.city_name }} (AQI: {{ aqi_data.us_aqi }}) is below your warning threshold ({{ threshold }} AQI).
+            </p>
+        </div>
+    {% endif %}
+
+    <!-- Family-Specific Personalized Precautions -->
+    {% if alert_info.family_precautions %}
+        <div class="card-custom p-4 mb-4">
+            <h2 class="card-title-custom mb-3">
+                <i class="bi bi-person-heart text-danger"></i>Individual Precautions for Registered Family Members
+            </h2>
+            <div class="row g-3">
+                {% for member in alert_info.family_precautions %}
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-3 border h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h3 class="h6 fw-bold text-dark mb-0">{{ member.name }}</h3>
+                                <span class="badge bg-secondary-subtle text-secondary small">{{ member.age_group }}</span>
+                            </div>
+                            <ul class="small text-secondary ps-3 mb-0">
+                                {% for prec in member.precautions %}
+                                    <li class="mb-1">{{ prec }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Standard Public Health Alert Tiers Guide -->
+    <div class="card-custom p-4">
+        <h2 class="card-title-custom mb-3">
+            <i class="bi bi-info-circle text-primary"></i>Standard Public Health Action Matrix
+        </h2>
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm align-middle small mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>AQI Tier</th>
+                        <th>Classification</th>
+                        <th>General Public Guidance</th>
+                        <th>Sensitive Groups & Children</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>0 – 50</strong></td>
+                        <td><span class="badge badge-good">Good</span></td>
+                        <td>Air quality is satisfactory. Enjoy regular outdoor sports and exercise.</td>
+                        <td>No precautions required.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>51 – 100</strong></td>
+                        <td><span class="badge badge-moderate">Moderate</span></td>
+                        <td>Air quality is acceptable. Most individuals can go about standard routines.</td>
+                        <td>Unusually sensitive people should monitor for throat irritation or wheezing.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>101 – 150</strong></td>
+                        <td><span class="badge badge-sensitive">Unhealthy for Sensitive</span></td>
+                        <td>General public is unlikely to be affected; keep afternoon windows closed.</td>
+                        <td>Children, seniors, and asthma sufferers should reduce prolonged outdoor exertion.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>151 – 200</strong></td>
+                        <td><span class="badge badge-unhealthy">Unhealthy</span></td>
+                        <td>Everyone may experience irritation. Move high-cardio exercises indoors.</td>
+                        <td>Wear certified N95 masks for unavoidable commutes. Eliminate outdoor play.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>201 – 300</strong></td>
+                        <td><span class="badge badge-very-unhealthy">Very Unhealthy</span></td>
+                        <td>Health alert: increased health risk for entire population. Seal windows.</td>
+                        <td>Strict indoor stay. Run continuous HEPA purifiers; avoid outdoor transit.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>301 – 500</strong></td>
+                        <td><span class="badge badge-hazardous">Hazardous</span></td>
+                        <td>Emergency conditions: all outdoor recreation and transit should be suspended.</td>
+                        <td>Remain inside purified clean rooms. Medical supplies and inhalers ready.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

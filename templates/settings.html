@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-dark">Settings & Preferences</h1>
+            <p class="text-muted small mb-0">
+                Configure your preferred AQI standard, alert thresholds, saved locations, and AI assistant credentials.
+            </p>
+        </div>
+        <div>
+            <span class="badge bg-light text-dark border p-2">
+                <i class="bi bi-sliders text-primary me-1"></i>System Configuration
+            </span>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Application Preferences Form -->
+        <div class="col-lg-7">
+            <div class="card-custom p-4 mb-4">
+                <h2 class="card-title-custom mb-3">
+                    <i class="bi bi-gear-fill text-primary"></i>Personal Preferences
+                </h2>
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_preferences">
+
+                    <div class="mb-3">
+                        <label for="{{ form.preferred_aqi_scale.id_for_label }}" class="form-label fw-semibold small">
+                            {{ form.preferred_aqi_scale.label }}
+                        </label>
+                        {{ form.preferred_aqi_scale }}
+                        <small class="text-muted d-block mt-1">Select between US EPA (0–500 index) or European EAQI (1–5 scale).</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.alert_threshold.id_for_label }}" class="form-label fw-semibold small">
+                            {{ form.alert_threshold.label }}
+                        </label>
+                        {{ form.alert_threshold }}
+                        <small class="text-muted d-block mt-1">Triggers dashboard warning banners when local AQI exceeds this number (Default: 150).</small>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        {{ form.notify_vulnerable_only }}
+                        <label class="form-check-label small fw-semibold text-dark" for="{{ form.notify_vulnerable_only.id_for_label }}">
+                            {{ form.notify_vulnerable_only.label }}
+                        </label>
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 border mb-4">
+                        <label for="{{ form.gemini_api_key_override.id_for_label }}" class="form-label fw-semibold small text-dark">
+                            <i class="bi bi-stars text-primary me-1"></i>{{ form.gemini_api_key_override.label }}
+                        </label>
+                        {{ form.gemini_api_key_override }}
+                        <small class="text-muted d-block mt-1">
+                            Optional. If left blank, the application uses the server's <code>GEMINI_API_KEY</code> environment variable or operates in the built-in offline expert rule-based mode.
+                        </small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="bi bi-check2-circle me-1"></i>Save Preferences
+                    </button>
+                </form>
+            </div>
+
+            <!-- System Architecture & Transparency -->
+            <div class="card-custom p-4">
+                <h2 class="card-title-custom mb-3">
+                    <i class="bi bi-cpu text-primary"></i>Data Integration & Architecture
+                </h2>
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <div>
+                            <strong>Air Quality Data Provider:</strong>
+                            <div class="text-muted">Open-Meteo Air Quality & CAMS Copernicus Models</div>
+                        </div>
+                        <span class="badge bg-success-subtle text-success">Live & Free API</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <div>
+                            <strong>Response Cache TTL:</strong>
+                            <div class="text-muted">In-Memory LocMemCache (1800s / 30 mins)</div>
+                        </div>
+                        <span class="badge bg-info-subtle text-info">Rate-Limit Safe</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <div>
+                            <strong>AI Assistant Engine:</strong>
+                            <div class="text-muted">Google Gemini Flash / Pro with graceful Rule-Based Fallback</div>
+                        </div>
+                        <span class="badge bg-primary-subtle text-primary">Hybrid AI</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Saved Locations Management -->
+        <div class="col-lg-5">
+            <div class="card-custom p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="card-title-custom">
+                        <i class="bi bi-geo-alt-fill text-danger"></i>Saved Locations
+                    </h2>
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#addLocationCollapse">
+                        <i class="bi bi-plus-lg me-1"></i>Add
+                    </button>
+                </div>
+
+                <!-- Add Location Form (Collapse) -->
+                <div class="collapse mb-3" id="addLocationCollapse">
+                    <form method="POST" class="p-3 bg-light rounded border">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add_location">
+                        <h3 class="h6 fw-bold mb-2">Save New City</h3>
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold">City Name</label>
+                            {{ loc_form.city_name }}
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold">Country</label>
+                            {{ loc_form.country }}
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Latitude</label>
+                                {{ loc_form.latitude }}
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Longitude</label>
+                                {{ loc_form.longitude }}
+                            </div>
+                        </div>
+                        <div class="form-check mb-2">
+                            {{ loc_form.is_default }}
+                            <label class="form-check-label small" for="{{ loc_form.is_default.id_for_label }}">Set as default location</label>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-primary w-100">Save Location</button>
+                    </form>
+                </div>
+
+                <!-- Locations List -->
+                {% if saved_locations %}
+                    <div class="list-group list-group-flush">
+                        {% for loc in saved_locations %}
+                            <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-bold text-dark">
+                                        {{ loc.city_name }}
+                                        {% if loc.is_default %}
+                                            <span class="badge bg-primary-subtle text-primary small ms-1">Default</span>
+                                        {% endif %}
+                                    </div>
+                                    <small class="text-muted">{{ loc.country }} &bull; ({{ loc.latitude }}, {{ loc.longitude }})</small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setActiveLocation('{{ loc.city_name|escapejs }}', {{ loc.latitude }}, {{ loc.longitude }})">
+                                    Switch
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="p-3 bg-light rounded text-center small text-muted">
+                        No custom locations saved. Use the global top search bar to explore any global city or save one above.
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Quick Presets -->
+            <div class="card-custom p-4">
+                <h2 class="card-title-custom mb-3">
+                    <i class="bi bi-pin-map text-primary"></i>Winter Smog Hotspots (Quick Switch)
+                </h2>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-sm btn-light border" onclick="setActiveLocation('New Delhi', 28.6139, 77.2090)">
+                        🇮🇳 New Delhi
+                    </button>
+                    <button class="btn btn-sm btn-light border" onclick="setActiveLocation('Lahore', 31.5204, 74.3587)">
+                        🇵🇰 Lahore
+                    </button>
+                    <button class="btn btn-sm btn-light border" onclick="setActiveLocation('Beijing', 39.9042, 116.4074)">
+                        🇨🇳 Beijing
+                    </button>
+                    <button class="btn btn-sm btn-light border" onclick="setActiveLocation('London', 51.5074, -0.1278)">
+                        🇬🇧 London
+                    </button>
+                    <button class="btn btn-sm btn-light border" onclick="setActiveLocation('New York', 40.7128, -74.0060)">
+                        🇺🇸 New York
+                    </button>
+                    <button class="btn btn-sm btn-light border" onclick="setActiveLocation('Paris', 48.8566, 2.3522)">
+                        🇫🇷 Paris
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

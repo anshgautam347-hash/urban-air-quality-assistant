@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-dark">Gemini AI Air Quality Assistant</h1>
+            <p class="text-muted small mb-0">
+                Ask questions tailored to your location's live pollution levels and family vulnerability profiles.
+            </p>
+        </div>
+        <div>
+            <span class="badge bg-light text-dark border p-2">
+                <i class="bi bi-geo-alt text-danger me-1"></i>{{ aqi_data.city_name }} &bull; Measured AQI: <strong>{{ aqi_data.us_aqi }}</strong>
+            </span>
+        </div>
+    </div>
+
+    <!-- AI Status & Safety Notice -->
+    <div class="alert alert-info border-start border-4 mb-4 shadow-sm" role="alert">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-stars fs-3 text-primary"></i>
+                <div>
+                    <h6 class="alert-heading mb-1 fw-bold">Environmental AI Health Assistant Active</h6>
+                    <p class="mb-0 small text-dark">
+                        Guidance incorporates live measured data and family profiles. 
+                        <strong>Medical Notice:</strong> This assistant provides environmental exposure guidance only, not clinical medical diagnosis.
+                    </p>
+                </div>
+            </div>
+            <div>
+                {% if has_gemini_configured %}
+                    <span class="badge bg-success text-white"><i class="bi bi-check-circle me-1"></i>Gemini Live API</span>
+                {% else %}
+                    <span class="badge bg-secondary text-white" title="Operating with expert environmental rule base"><i class="bi bi-cpu me-1"></i>Expert Rule-Based Engine</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Prompt Pills -->
+    <div class="mb-3">
+        <span class="small fw-bold text-secondary d-block mb-2">Suggested Inquiries (Click to Ask):</span>
+        <div class="d-flex flex-wrap gap-2">
+            {% for prompt in sample_prompts %}
+                <button type="button" class="btn btn-sm btn-outline-primary prompt-pill bg-white shadow-sm" onclick="sendQuickPrompt('{{ prompt|escapejs }}')">
+                    <i class="bi bi-chat-right-text me-1"></i>{{ prompt }}
+                </button>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Chat Interface -->
+    <div class="chat-container shadow-sm mb-4">
+        <!-- Message Thread -->
+        <div class="chat-messages" id="chatThread">
+            <!-- Initial Greeting -->
+            <div class="chat-bubble bubble-assistant">
+                <div class="fw-bold small text-primary mb-1"><i class="bi bi-stars me-1"></i>AI Urban Air Assistant</div>
+                <p class="mb-1">
+                    Hello! I'm monitoring the ambient air quality in <strong>{{ aqi_data.city_name }}</strong> (currently <strong>{{ aqi_data.us_aqi }} AQI — {{ aqi_data.category.level }}</strong>, with PM2.5 at <strong>{{ aqi_data.pm25 }} µg/m³</strong>).
+                </p>
+                <p class="mb-0">
+                    How can I assist your family today? You can ask about child outdoor playtime, protecting elderly family members, bedroom air purifier setups, or low-emission commute options.
+                </p>
+            </div>
+
+            <!-- Pre-existing Chat History -->
+            {% for chat in chat_history %}
+                <div class="chat-bubble bubble-user">
+                    {{ chat.user_message }}
+                </div>
+                <div class="chat-bubble bubble-assistant">
+                    <div class="fw-bold small text-primary mb-1">
+                        <i class="bi bi-stars me-1"></i>{{ chat.model_source }}
+                    </div>
+                    <div>{{ chat.ai_response|linebreaksbr }}</div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Input Box & Form -->
+        <div class="p-3 bg-light border-top">
+            <form id="aiChatForm" class="d-flex gap-2">
+                <input type="text" id="userMessageInput" class="form-control" placeholder="Ask about child safety, indoor purifiers, commuting, or daily smog routines..." autocomplete="off" required>
+                <button type="submit" id="sendBtn" class="btn btn-primary px-4 d-flex align-items-center gap-1">
+                    <span id="btnText">Send</span>
+                    <span id="btnSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    <i class="bi bi-send-fill" id="btnIcon"></i>
+                </button>
+            </form>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <small class="text-muted" style="font-size: 0.75rem;">
+                    <i class="bi bi-info-circle me-1"></i>Live AQI metrics are attached automatically with every prompt.
+                </small>
+                <small class="text-muted" style="font-size: 0.75rem;">
+                    Non-diagnostic environmental advice &bull; Consult a doctor for medical emergencies.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function sendQuickPrompt(promptText) {
+    const input = document.getElementById('userMessageInput');
+    if (input) {
+        input.value = promptText;
+        document.getElementById('aiChatForm').dispatchEvent(new Event('submit'));
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const chatThread = document.getElementById('chatThread');
+    const form = document.getElementById('aiChatForm');
+    const input = document.getElementById('userMessageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const btnSpinner = document.getElementById('btnSpinner');
+    const btnIcon = document.getElementById('btnIcon');
+    const btnText = document.getElementById('btnText');
+
+    function scrollToBottom() {
+        chatThread.scrollTop = chatThread.scrollHeight;
+    }
+    scrollToBottom();
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const message = input.value.trim();
+        if (!message) return;
+
+        // Append User Message Bubble
+        const userBubble = document.createElement('div');
+        userBubble.className = 'chat-bubble bubble-user';
+        userBubble.textContent = message;
+        chatThread.appendChild(userBubble);
+        input.value = '';
+        scrollToBottom();
+
+        // UI Loading State
+        sendBtn.disabled = true;
+        btnSpinner.classList.remove('d-none');
+        btnIcon.classList.add('d-none');
+        btnText.textContent = 'Thinking...';
+
+        // Placeholder thinking bubble
+        const thinkingBubble = document.createElement('div');
+        thinkingBubble.className = 'chat-bubble bubble-assistant';
+        thinkingBubble.id = 'thinkingBubble';
+        thinkingBubble.innerHTML = '<span class="spinner-grow spinner-grow-sm me-2 text-primary" role="status"></span>Analyzing air quality data & family context...';
+        chatThread.appendChild(thinkingBubble);
+        scrollToBottom();
+
+        fetch('/api/ai-chat/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': window.getCookie('csrftoken')
+            },
+            body: JSON.stringify({ message: message })
+        })
+        .then(res => res.json())
+        .then(data => {
+            thinkingBubble.remove();
+            const aiBubble = document.createElement('div');
+            aiBubble.className = 'chat-bubble bubble-assistant';
+            
+            // Format markdown-like headings and lists
+            let formattedReply = data.reply
+                .replace(/### (.*?)\n/g, '<h4 class="fw-bold mt-2 mb-1 text-dark">$1</h4>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n\n/g, '<br><br>')
+                .replace(/\n- /g, '<br>&bull; ');
+
+            aiBubble.innerHTML = `
+                <div class="fw-bold small text-primary mb-1">
+                    <i class="bi bi-stars me-1"></i>${data.source}
+                </div>
+                <div>${formattedReply}</div>
+            `;
+            chatThread.appendChild(aiBubble);
+            scrollToBottom();
+        })
+        .catch(err => {
+            thinkingBubble.remove();
+            const errBubble = document.createElement('div');
+            errBubble.className = 'chat-bubble bubble-assistant border-danger';
+            errBubble.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Sorry, could not process request right now. Please try again.</span>';
+            chatThread.appendChild(errBubble);
+            scrollToBottom();
+        })
+        .finally(() => {
+            sendBtn.disabled = false;
+            btnSpinner.classList.add('d-none');
+            btnIcon.classList.remove('d-none');
+            btnText.textContent = 'Send';
+            input.focus();
+        });
+    });
+});
+</script>
+{% endblock %}

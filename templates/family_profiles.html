@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-dark">Personalized Family Profiles</h1>
+            <p class="text-muted small mb-0">
+                Tailor winter smog defenses, commute strategies, and activity windows to the specific health profiles of your household.
+            </p>
+        </div>
+        <div>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addProfileModal">
+                <i class="bi bi-person-plus-fill me-1"></i>Add Family Member
+            </button>
+        </div>
+    </div>
+
+    <!-- Active Exposure Context Banner -->
+    <div class="p-3 bg-light rounded-3 border mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+            <span class="text-secondary small fw-semibold">Current Outdoor Context:</span>
+            <span class="fw-bold text-dark ms-1">{{ aqi_data.city_name }}</span> &bull; 
+            <span class="badge {{ aqi_data.category.badge_class }}">{{ aqi_data.us_aqi }} AQI ({{ aqi_data.category.level }})</span>
+        </div>
+        <small class="text-muted">
+            <i class="bi bi-shield-lock me-1 text-success"></i>Only necessary health traits are collected to personalize exposure guidance.
+        </small>
+    </div>
+
+    <!-- Family Members Grid -->
+    <div class="row g-3 mb-4">
+        {% if analyzed_profiles %}
+            {% for item in analyzed_profiles %}
+                <div class="col-lg-6">
+                    <div class="card-custom p-4 h-100 position-relative {% if item.is_high_risk %}border-warning{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center {% if item.is_high_risk %}bg-warning-subtle text-warning{% else %}bg-primary-subtle text-primary{% endif %}" 
+                                     style="width: 48px; height: 48px; font-size: 1.35rem;">
+                                    {% if item.profile.age_group == 'infant' %}
+                                        <i class="bi bi-emoji-smile"></i>
+                                    {% elif item.profile.age_group == 'child' %}
+                                        <i class="bi bi-backpack"></i>
+                                    {% elif item.profile.age_group == 'senior' %}
+                                        <i class="bi bi-person-cane"></i>
+                                    {% else %}
+                                        <i class="bi bi-person"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <h4 class="h5 fw-bold text-dark mb-0">{{ item.profile.name }}</h4>
+                                    <div class="small text-secondary">{{ item.profile.get_age_group_display }}</div>
+                                </div>
+                            </div>
+                            
+                            <form action="{% url 'delete_family_profile' item.profile.id %}" method="POST" onsubmit="return confirm('Remove profile for {{ item.profile.name }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm border-0" title="Delete Profile" aria-label="Delete Profile">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="my-3">
+                            <div class="small text-muted mb-1">
+                                <strong><i class="bi bi-activity text-primary me-1"></i>Routine:</strong> {{ item.profile.get_activity_preferences_display }}
+                            </div>
+                            {% if item.profile.outdoor_habits %}
+                                <div class="small text-muted mb-2">
+                                    <strong><i class="bi bi-clock me-1"></i>Habits:</strong> {{ item.profile.outdoor_habits }}
+                                </div>
+                            {% endif %}
+
+                            {% if item.profile.has_respiratory_condition %}
+                                <div class="p-2 rounded bg-danger-subtle text-danger-emphasis small mb-2">
+                                    <i class="bi bi-heart-pulse-fill me-1"></i>
+                                    <strong>Respiratory Vulnerability:</strong> {{ item.profile.condition_details|default:"Asthma / Cardiac Sensitivity" }}
+                                </div>
+                            {% else %}
+                                <div class="p-2 rounded bg-light text-muted small mb-2">
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i>No respiratory vulnerabilities specified.
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Tailored Guidance for Today -->
+                        <div class="p-3 bg-light rounded-3 border-start border-3 {% if item.is_high_risk %}border-warning{% else %}border-primary{% endif %} mt-auto">
+                            <span class="small fw-bold text-dark d-block mb-1">
+                                <i class="bi bi-lightbulb-fill text-warning me-1"></i>Today's Smog Action Protocol:
+                            </span>
+                            <p class="small text-secondary mb-0">
+                                {{ item.guidance }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="card-custom text-center py-5">
+                    <i class="bi bi-people display-4 text-muted mb-3"></i>
+                    <h3 class="h5 fw-bold text-dark">No Family Profiles Created Yet</h3>
+                    <p class="text-muted small max-w-md mx-auto mb-4" style="max-width: 450px;">
+                        Set up profiles for yourself, children, elderly parents, or members with asthma to get targeted low-emission routine advice during winter smog.
+                    </p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProfileModal">
+                        <i class="bi bi-person-plus-fill me-1"></i>Add First Family Profile
+                    </button>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal: Add Family Member -->
+<div class="modal fade" id="addProfileModal" tabindex="-1" aria-labelledby="addProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="addProfileModalLabel">
+                    <i class="bi bi-person-plus text-primary me-1"></i>Add Family Profile
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold small">{{ form.name.label }}</label>
+                        {{ form.name }}
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.age_group.id_for_label }}" class="form-label fw-semibold small">{{ form.age_group.label }}</label>
+                            {{ form.age_group }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.activity_preferences.id_for_label }}" class="form-label fw-semibold small">{{ form.activity_preferences.label }}</label>
+                            {{ form.activity_preferences }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.outdoor_habits.id_for_label }}" class="form-label fw-semibold small">{{ form.outdoor_habits.label }}</label>
+                        {{ form.outdoor_habits }}
+                        <small class="text-muted d-block mt-1">E.g., "Walks dog at 7:00 AM", "Plays soccer outdoors after school"</small>
+                    </div>
+
+                    <div class="p-3 bg-light rounded border mb-3">
+                        <div class="form-check mb-2">
+                            {{ form.has_respiratory_condition }}
+                            <label class="form-check-label fw-semibold small text-dark" for="{{ form.has_respiratory_condition.id_for_label }}">
+                                {{ form.has_respiratory_condition.label }}
+                            </label>
+                        </div>
+                        <div id="conditionDetailsWrapper" style="display: none;">
+                            <label for="{{ form.condition_details.id_for_label }}" class="form-label small text-secondary">
+                                {{ form.condition_details.label }}
+                            </label>
+                            {{ form.condition_details }}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4">Save Member Profile</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const check = document.getElementById('id_has_respiratory_condition');
+    const wrapper = document.getElementById('conditionDetailsWrapper');
+
+    function toggleDetails() {
+        if (check && wrapper) {
+            wrapper.style.display = check.checked ? 'block' : 'none';
+        }
+    }
+    if (check) {
+        check.addEventListener('change', toggleDetails);
+        toggleDetails();
+    }
+});
+</script>
+{% endblock %}

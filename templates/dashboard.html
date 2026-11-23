@@ -1,0 +1,335 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Severe Pollution Alert Banner if active -->
+    {% if alert_info.is_severe %}
+        <div class="alert {{ alert_info.alerts.0.color_class }} border-start border-4 mb-4 shadow-sm" role="alert">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-exclamation-triangle-fill fs-3 text-danger"></i>
+                    <div>
+                        <h6 class="alert-heading mb-1 fw-bold">{{ alert_info.alerts.0.title }}</h6>
+                        <p class="mb-0 small">{{ alert_info.alerts.0.message }}</p>
+                    </div>
+                </div>
+                <a href="{% url 'alerts' %}" class="btn btn-sm btn-danger px-3">View Precautions</a>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Location Header & Data Source Status -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-dark">{{ aqi_data.city_name }} Air Quality</h1>
+            <div class="d-flex align-items-center gap-2 text-muted small">
+                <span><i class="bi bi-clock me-1"></i>Updated: {{ aqi_data.timestamp }}</span>
+                <span>&bull;</span>
+                <span><i class="bi bi-database-check me-1 text-success"></i>{{ aqi_data.data_source }}</span>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'routine_planner' %}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-calendar-check me-1"></i>Daily Routine
+            </a>
+            <a href="{% url 'ai_chat' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-stars me-1"></i>Ask Gemini Assistant
+            </a>
+        </div>
+    </div>
+
+    <!-- Main AQI Hero & Status Cards -->
+    <div class="row g-3 mb-4">
+        <!-- Main AQI Metric Card -->
+        <div class="col-lg-5">
+            <div class="card-custom p-4 aqi-hero-card h-100" style="border-left-color: {{ aqi_data.category.color }};">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="text-secondary fw-semibold text-uppercase small">Air Quality Index</span>
+                    <span class="aqi-badge {{ aqi_data.category.badge_class }}">
+                        <i class="bi bi-circle-fill" style="font-size: 0.5rem; color: {{ aqi_data.category.color }};"></i>
+                        {{ aqi_data.category.level }}
+                    </span>
+                </div>
+                
+                <div class="d-flex align-items-baseline gap-3 my-2">
+                    <div class="aqi-number" style="color: {{ aqi_data.category.color }};">
+                        {{ aqi_data.us_aqi }}
+                    </div>
+                    <div class="text-muted small">
+                        <span class="fw-bold d-block text-dark">{{ aqi_data.requested_scale }}</span>
+                        <span>0–500 Standard Scale</span>
+                    </div>
+                </div>
+
+                <p class="text-secondary small mb-3">
+                    {{ aqi_data.category.description }}
+                </p>
+
+                <div class="p-3 bg-light rounded-3 border">
+                    <div class="fw-semibold text-dark small mb-1"><i class="bi bi-shield-exclamation text-warning me-1"></i>Family Health Impact:</div>
+                    <p class="small text-muted mb-0">{{ aqi_data.category.health_impact }}</p>
+                </div>
+
+                <div class="mt-3 pt-3 border-top d-flex justify-content-between text-muted small">
+                    <span>European AQI: <strong class="text-dark">{{ aqi_data.european_aqi }} ({{ aqi_data.european_category.level }})</strong></span>
+                    <a href="{% url 'air_quality_details' %}" class="text-primary text-decoration-none fw-semibold">Scale Guide &rarr;</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6 Key Measured Pollutants -->
+        <div class="col-lg-7">
+            <div class="card-custom p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="card-title-custom">
+                        <i class="bi bi-speedometer2 text-primary"></i>Measured Pollutant Concentrations
+                    </h2>
+                    <span class="badge bg-light text-secondary border">Real Concentrations (µg/m³)</span>
+                </div>
+
+                <div class="row g-2">
+                    <!-- PM2.5 -->
+                    <div class="col-sm-4 col-6">
+                        <div class="metric-box">
+                            <span class="metric-label">PM2.5</span>
+                            <div class="metric-value">{{ aqi_data.pm25 }}</div>
+                            <span class="metric-unit">µg/m³ &bull; WHO: 15</span>
+                            <div class="small fw-semibold mt-1 {{ aqi_data.pollutants.0.status_class }}">
+                                {{ aqi_data.pollutants.0.status }}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- PM10 -->
+                    <div class="col-sm-4 col-6">
+                        <div class="metric-box">
+                            <span class="metric-label">PM10</span>
+                            <div class="metric-value">{{ aqi_data.pm10 }}</div>
+                            <span class="metric-unit">µg/m³ &bull; WHO: 45</span>
+                            <div class="small fw-semibold mt-1 {{ aqi_data.pollutants.1.status_class }}">
+                                {{ aqi_data.pollutants.1.status }}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- NO2 -->
+                    <div class="col-sm-4 col-6">
+                        <div class="metric-box">
+                            <span class="metric-label">NO2</span>
+                            <div class="metric-value">{{ aqi_data.no2 }}</div>
+                            <span class="metric-unit">µg/m³ &bull; WHO: 25</span>
+                            <div class="small fw-semibold mt-1 {{ aqi_data.pollutants.2.status_class }}">
+                                {{ aqi_data.pollutants.2.status }}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- O3 -->
+                    <div class="col-sm-4 col-6">
+                        <div class="metric-box">
+                            <span class="metric-label">Ozone (O3)</span>
+                            <div class="metric-value">{{ aqi_data.o3 }}</div>
+                            <span class="metric-unit">µg/m³ &bull; WHO: 100</span>
+                            <div class="small fw-semibold mt-1 {{ aqi_data.pollutants.3.status_class }}">
+                                {{ aqi_data.pollutants.3.status }}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- CO -->
+                    <div class="col-sm-4 col-6">
+                        <div class="metric-box">
+                            <span class="metric-label">CO</span>
+                            <div class="metric-value">{{ aqi_data.co }}</div>
+                            <span class="metric-unit">µg/m³</span>
+                            <div class="small fw-semibold mt-1 text-success">
+                                {{ aqi_data.pollutants.4.status }}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- SO2 -->
+                    <div class="col-sm-4 col-6">
+                        <div class="metric-box">
+                            <span class="metric-label">SO2</span>
+                            <div class="metric-value">{{ aqi_data.so2 }}</div>
+                            <span class="metric-unit">µg/m³</span>
+                            <div class="small fw-semibold mt-1 text-success">
+                                {{ aqi_data.pollutants.5.status }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3 p-2 bg-light rounded text-center small text-muted">
+                    <i class="bi bi-info-circle me-1 text-primary"></i>
+                    <strong>Concentration vs AQI:</strong> Concentrations are physical masses in air (µg/m³). AQI is a standardized index calculated to communicate aggregate health risk.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 24-Hour Hourly Forecast Chart & Daily Windows -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-8">
+            <div class="card-custom p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="card-title-custom">
+                        <i class="bi bi-clock-history text-primary"></i>24-Hour Air Quality Forecast
+                    </h2>
+                    <span class="small text-muted">Model Predictions (Open-Meteo CAMS)</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="forecastChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Smog Routine & Indoor Status Highlights -->
+        <div class="col-lg-4">
+            <div class="card-custom p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h3 class="card-title-custom fs-6">
+                        <i class="bi bi-brightness-high text-warning"></i>Optimal Outdoor Window
+                    </h3>
+                    <span class="badge bg-success-subtle text-success">Safe Dip</span>
+                </div>
+                <div class="p-2 bg-light rounded-3 mb-2">
+                    <div class="fw-bold text-dark fs-5">{{ routine_preview.best_window.time }}</div>
+                    <small class="text-muted">Projected AQI: ~{{ routine_preview.min_aqi }} (Lowest of the day)</small>
+                </div>
+                <p class="small text-muted mb-2">
+                    Winter temperature inversion lifts mid-day under sunlight. Schedule outdoor tasks here.
+                </p>
+                <a href="{% url 'routine_planner' %}" class="btn btn-sm btn-outline-secondary w-100">Full Daily Planner</a>
+            </div>
+
+            <div class="card-custom p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h3 class="card-title-custom fs-6">
+                        <i class="bi bi-house-door text-primary"></i>Indoor Air Status
+                    </h3>
+                    <span class="badge bg-{{ indoor_preview.ventilation_class }}-subtle text-{{ indoor_preview.ventilation_class }}">
+                        {{ indoor_preview.ventilation_status }}
+                    </span>
+                </div>
+                <p class="small text-muted mb-2">
+                    {{ indoor_preview.ventilation_protocol|truncatewords:25 }}
+                </p>
+                <a href="{% url 'indoor_air' %}" class="btn btn-sm btn-outline-secondary w-100">Indoor Hacks & Checklist</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Family Status Card -->
+    <div class="card-custom p-3 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="card-title-custom">
+                <i class="bi bi-people-fill text-primary"></i>Family Safety Overview
+            </h2>
+            <a href="{% url 'family_profiles' %}" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>Manage Family
+            </a>
+        </div>
+
+        {% if family_profiles %}
+            <div class="row g-2">
+                {% for member in family_profiles %}
+                    <div class="col-md-4 col-sm-6">
+                        <div class="p-3 border rounded-3 bg-light">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <span class="fw-bold text-dark">{{ member.name }}</span>
+                                <span class="badge bg-secondary-subtle text-secondary small">{{ member.get_age_group_display }}</span>
+                            </div>
+                            <div class="small text-muted mb-2">
+                                <i class="bi bi-activity me-1"></i>{{ member.get_activity_preferences_display }}
+                            </div>
+                            {% if member.has_respiratory_condition %}
+                                <div class="badge bg-danger-subtle text-danger mb-1">
+                                    <i class="bi bi-heart-pulse-fill me-1"></i>{{ member.condition_details|default:"Vulnerable Condition" }}
+                                </div>
+                            {% else %}
+                                <div class="badge bg-success-subtle text-success mb-1">
+                                    <i class="bi bi-shield-check me-1"></i>Standard Exposure
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-4 bg-light rounded-3">
+                <i class="bi bi-people fs-2 text-muted"></i>
+                <h6 class="mt-2 text-dark">No Family Members Registered Yet</h6>
+                <p class="small text-muted mb-3">Add profiles for children, adults, or elderly members to receive personalized winter smog precautions.</p>
+                <a href="{% url 'family_profiles' %}" class="btn btn-sm btn-outline-primary">Add First Family Profile</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const forecastData = {{ forecast_json|safe }};
+    const ctx = document.getElementById('forecastChart');
+    if (ctx && forecastData) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: forecastData.labels,
+                datasets: [
+                    {
+                        label: 'Predicted US AQI',
+                        data: forecastData.aqi,
+                        borderColor: '#0284c7',
+                        backgroundColor: 'rgba(2, 132, 199, 0.1)',
+                        fill: true,
+                        tension: 0.35,
+                        borderWidth: 2.5,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#0284c7'
+                    },
+                    {
+                        label: 'PM2.5 (µg/m³)',
+                        data: forecastData.pm25,
+                        borderColor: '#ef4444',
+                        borderDash: [4, 4],
+                        tension: 0.35,
+                        borderWidth: 2,
+                        fill: false,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index',
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { boxWidth: 12, font: { size: 12 } }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1e293b',
+                        padding: 10,
+                        cornerRadius: 8
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f1f5f9' },
+                        title: { display: true, text: 'Index / Concentration', font: { size: 11 } }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

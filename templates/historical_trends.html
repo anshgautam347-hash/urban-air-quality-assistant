@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-dark">Historical Air Quality & 7-Day Trends</h1>
+            <p class="text-muted small mb-0">
+                Retrospective air pollution analysis derived directly from Open-Meteo CAMS atmospheric archives.
+            </p>
+        </div>
+        <div>
+            <span class="badge bg-light text-dark border p-2">
+                <i class="bi bi-geo-alt text-danger me-1"></i>{{ aqi_data.city_name }} &bull; Past 7 Days Analysis
+            </span>
+        </div>
+    </div>
+
+    <!-- 7-Day Statistical Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card-custom p-3 text-center h-100">
+                <span class="text-secondary small fw-semibold text-uppercase">7-Day Average AQI</span>
+                <div class="fs-2 fw-bold text-dark my-1">{{ stats.avg_aqi }}</div>
+                <small class="text-muted">Mean Ambient Exposure</small>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card-custom p-3 text-center h-100">
+                <span class="text-secondary small fw-semibold text-uppercase">Peak Smog Spike</span>
+                <div class="fs-2 fw-bold text-danger my-1">{{ stats.max_aqi }}</div>
+                <small class="text-muted">Worst Measured Hour</small>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card-custom p-3 text-center h-100">
+                <span class="text-secondary small fw-semibold text-uppercase">Cleanest Period Dip</span>
+                <div class="fs-2 fw-bold text-success my-1">{{ stats.min_aqi }}</div>
+                <small class="text-muted">Optimal Dispersal Window</small>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card-custom p-3 text-center h-100">
+                <span class="text-secondary small fw-semibold text-uppercase">WHO PM2.5 Exceedance</span>
+                <div class="fs-2 fw-bold text-warning my-1">{{ stats.who_exceedance_pct }}%</div>
+                <small class="text-muted">Hours Above 15 µg/m³ Limit</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7-Day AQI Trend Chart -->
+    <div class="card-custom p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="card-title-custom">
+                <i class="bi bi-graph-up-arrow text-primary"></i>7-Day Air Quality Index (AQI) Progression
+            </h2>
+            <span class="small text-muted"><i class="bi bi-check-circle text-success me-1"></i>Measured Data</span>
+        </div>
+        <div style="height: 300px;">
+            <canvas id="historicalAqiChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Multi-Pollutant Historical Comparison (PM2.5, PM10, NO2) -->
+    <div class="card-custom p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="card-title-custom">
+                <i class="bi bi-layers-half text-primary"></i>Particulate & Nitrogen Dioxide Concentrations (µg/m³)
+            </h2>
+            <span class="small text-muted">PM2.5 vs PM10 vs NO2</span>
+        </div>
+        <div style="height: 300px;">
+            <canvas id="historicalPollutantsChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Meteorological Inversion Insight -->
+    <div class="card-custom p-4 bg-light">
+        <div class="d-flex align-items-start gap-3">
+            <i class="bi bi-lightbulb-fill text-warning fs-3 mt-1"></i>
+            <div>
+                <h3 class="h6 fw-bold text-dark mb-1">Meteorological Pattern Observations</h3>
+                <p class="small text-muted mb-0">
+                    Notice how pollution consistently oscillates across 24-hour cycles: peaks regularly recur in the early morning (6 AM – 9 AM) and post-sunset (7 PM – 11 PM) due to radiative boundary layer cooling (thermal inversion). Conversely, afternoon hours demonstrate recurring dips due to convective vertical air mixing.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const histData = {{ historical_chart_json|safe }};
+
+    // 1. AQI Line Chart
+    const ctxAqi = document.getElementById('historicalAqiChart');
+    if (ctxAqi && histData) {
+        new Chart(ctxAqi, {
+            type: 'line',
+            data: {
+                labels: histData.labels,
+                datasets: [{
+                    label: 'Historical US AQI',
+                    data: histData.aqi,
+                    borderColor: '#0284c7',
+                    backgroundColor: 'rgba(2, 132, 199, 0.08)',
+                    fill: true,
+                    tension: 0.3,
+                    borderWidth: 2.2,
+                    pointRadius: 2,
+                    pointBackgroundColor: '#0284c7'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f1f5f9' },
+                        title: { display: true, text: 'US AQI' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { maxTicksLimit: 14 }
+                    }
+                }
+            }
+        });
+    }
+
+    // 2. Multi-Pollutant Chart
+    const ctxPol = document.getElementById('historicalPollutantsChart');
+    if (ctxPol && histData) {
+        new Chart(ctxPol, {
+            type: 'line',
+            data: {
+                labels: histData.labels,
+                datasets: [
+                    {
+                        label: 'PM2.5 (µg/m³)',
+                        data: histData.pm25,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'transparent',
+                        tension: 0.3,
+                        borderWidth: 2,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'PM10 (µg/m³)',
+                        data: histData.pm10,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'transparent',
+                        tension: 0.3,
+                        borderWidth: 2,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'NO2 (µg/m³)',
+                        data: histData.no2,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'transparent',
+                        tension: 0.3,
+                        borderWidth: 1.8,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f1f5f9' },
+                        title: { display: true, text: 'Concentration (µg/m³)' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { maxTicksLimit: 14 }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -119,3 +119,20 @@ DEFAULT_CITY_NAME = os.environ.get('DEFAULT_CITY_NAME', 'New Delhi')
 DEFAULT_LATITUDE = float(os.environ.get('DEFAULT_LATITUDE', '28.6139'))
 DEFAULT_LONGITUDE = float(os.environ.get('DEFAULT_LONGITUDE', '77.2090'))
 DEFAULT_AQI_SCALE = os.environ.get('DEFAULT_AQI_SCALE', 'US_AQI')
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
